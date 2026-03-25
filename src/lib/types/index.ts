@@ -178,7 +178,7 @@ export interface ReportVerification {
 export interface JobStatus {
   status: "queued" | "running" | "completed" | "failed";
   domain: string;
-  email: string;
+  email?: string;
   createdAt: string;
   updatedAt?: string;
   reportUrl?: string;
@@ -192,7 +192,7 @@ export interface PipelineEvent {
   name: "analysis/requested";
   data: {
     domain: string;
-    email: string;
+    email?: string;
     jobId: string;
   };
 }

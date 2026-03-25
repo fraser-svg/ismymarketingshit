@@ -95,21 +95,23 @@ async function increment(key: string, windowSeconds: number): Promise<{ count: n
 // ---------------------------------------------------------------------------
 
 export async function checkRateLimit(params: {
-  email: string;
+  email?: string;
   domain: string;
   ip: string;
 }): Promise<RateLimitResult> {
   const { email, domain, ip } = params;
 
-  // 1. Email: 1 per 7 days
-  const emailKey = `rl:email:${email.toLowerCase()}`;
-  const emailResult = await increment(emailKey, WEEK);
-  if (emailResult.count > 1) {
-    return {
-      allowed: false,
-      reason: "You've already requested an analysis this week. Please try again later.",
-      retryAfter: emailResult.retryAfter,
-    };
+  // 1. Email: 1 per 7 days (skipped when email not provided)
+  if (email) {
+    const emailKey = `rl:email:${email.toLowerCase()}`;
+    const emailResult = await increment(emailKey, WEEK);
+    if (emailResult.count > 1) {
+      return {
+        allowed: false,
+        reason: "You've already requested an analysis this week. Please try again later.",
+        retryAfter: emailResult.retryAfter,
+      };
+    }
   }
 
   // 2. Domain: 1 per 24 hours

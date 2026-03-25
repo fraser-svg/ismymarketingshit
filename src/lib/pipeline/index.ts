@@ -126,9 +126,9 @@ export const voiceGapPipeline = inngest.createFunction(
     triggers: [{ event: "analysis/requested" }],
   },
   async ({ event, step }) => {
-    const { domain, email, jobId } = event.data as {
+    const { domain, email = "", jobId } = event.data as {
       domain: string;
-      email: string;
+      email?: string;
       jobId: string;
     };
 
@@ -223,16 +223,15 @@ export const voiceGapPipeline = inngest.createFunction(
         verification.issues,
       );
 
-      // Send "couldn't analyse" email
-      await step.run("send-error-email", async () => {
-        return sendErrorEmail({
-          to: email,
-          domain,
-          reason:
-            "We weren't able to access enough content from your website to produce a meaningful analysis. " +
-            "This can happen if the site blocks automated access, has very little public content, or is behind a login wall.",
+      if (email) {
+        await step.run("send-error-email", async () => {
+          return sendErrorEmail({
+            to: email,
+            domain,
+            reason: "We weren't able to access enough content from your website to produce a meaningful analysis. This can happen if the site blocks automated access, has very little public content, or is behind a login wall.",
+          });
         });
-      });
+      }
 
       return { jobId, error: "insufficient_data", issues: verification.issues };
     }
@@ -380,16 +379,18 @@ export const voiceGapPipeline = inngest.createFunction(
           finalVerification.issues,
         );
 
-        await step.run("send-verification-failure-email", async () => {
-          return sendErrorEmail({
-            to: email,
-            domain,
-            reason:
-              "We completed the analysis but our quality checks flagged issues we could not resolve automatically. " +
-              "We would rather not send you a report with unverified claims. " +
-              "Please reply to this email and we will look into it.",
+        if (email) {
+          await step.run("send-verification-failure-email", async () => {
+            return sendErrorEmail({
+              to: email,
+              domain,
+              reason:
+                "We completed the analysis but our quality checks flagged issues we could not resolve automatically. " +
+                "We would rather not send you a report with unverified claims. " +
+                "Please reply to this email and we will look into it.",
+            });
           });
-        });
+        }
 
         return { jobId, error: "verification_failed", issues: finalVerification.issues };
       }
@@ -407,14 +408,6 @@ export const voiceGapPipeline = inngest.createFunction(
     const reportUrl = await step.run("generate-report", async () => {
       console.log("[generate-report] Storing report");
       return generateReportStep(jobId, report as CompiledReport);
-    });
-
-    await updateJobStatus(jobId, { currentStep: "send-email" });
-
-    // Step 9: Send report email via Resend
-    await step.run("send-email", async () => {
-      console.log(`[send-email] Sending report to ${email}`);
-      return sendEmailStep(email, report as CompiledReport, reportUrl);
     });
 
     // Mark job as completed

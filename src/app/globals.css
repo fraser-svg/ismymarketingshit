@@ -3,19 +3,12 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #0a0a0a;
-  --accent: #2563eb;
-  --accent-light: #eff6ff;
-  --score-red: #dc2626;
-  --score-amber: #d97706;
-  --score-green: #16a34a;
+  --foreground: #000000;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-accent: var(--accent);
-  --color-accent-light: var(--accent-light);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -24,4 +17,27 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Brutalist design system */
+.brutal-border {
+  border: 4px solid #000;
+}
+
+.brutal-shadow {
+  box-shadow: 8px 8px 0px 0px #000;
+}
+
+.brutal-shadow-sm {
+  box-shadow: 4px 4px 0px 0px #000;
+}
+
+.brutal-shadow-hover:hover {
+  box-shadow: 2px 2px 0px 0px #000;
+  transform: translate(6px, 6px);
+}
+
+::selection {
+  background-color: #ef4444;
+  color: #fff;
 }

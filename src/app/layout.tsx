@@ -14,9 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Voice Gap Analysis | Dean & Wiseman",
-  description:
-    "Find out what your messaging actually says about you. Free diagnostic report in minutes.",
+  title: "Is My Positioning Shit?",
+  description: "Find out what's stopping people understanding your business.",
 };
 
 export default function RootLayout({
@@ -29,7 +28,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-white text-zinc-900">
+      <body className="bg-white text-black min-h-screen font-sans antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>

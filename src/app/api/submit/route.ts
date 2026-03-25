@@ -41,7 +41,7 @@ function isValidEmail(email: string): boolean {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { domain: rawDomain, email, website: honeypot } = body as {
+    const { domain: rawDomain, email = "", website: honeypot } = body as {
       domain?: string;
       email?: string;
       website?: string;
@@ -66,25 +66,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!email || typeof email !== "string") {
-      return NextResponse.json(
-        { error: "Missing or invalid 'email' field" },
-        { status: 400 },
-      );
-    }
-
     const domain = normaliseDomain(rawDomain);
 
     if (!isValidDomain(domain)) {
       return NextResponse.json(
         { error: "Invalid domain format. Provide a domain like 'example.com'" },
-        { status: 400 },
-      );
-    }
-
-    if (!isValidEmail(email.trim())) {
-      return NextResponse.json(
-        { error: "Invalid email format" },
         { status: 400 },
       );
     }
@@ -108,7 +94,6 @@ export async function POST(request: NextRequest) {
       "unknown";
 
     const rateCheck = await checkRateLimit({
-      email: email.trim(),
       domain,
       ip,
     });
@@ -132,7 +117,6 @@ export async function POST(request: NextRequest) {
     const jobStatus: JobStatus = {
       status: "queued",
       domain,
-      email: email.trim(),
       createdAt: now,
     };
 
@@ -143,7 +127,6 @@ export async function POST(request: NextRequest) {
       name: "analysis/requested",
       data: {
         domain,
-        email: email.trim(),
         jobId,
       },
     });
