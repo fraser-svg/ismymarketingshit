@@ -82,6 +82,12 @@ export interface ReportSection {
 }
 
 /** The final compiled report ready for rendering. */
+export interface ScoreDimension {
+  score: number;
+  maxScore: number;
+  justification?: string;
+}
+
 export interface CompiledReport {
   mirrorLine: string;
   sections: ReportSection[];
@@ -90,6 +96,8 @@ export interface CompiledReport {
   domain: string;
   narrativeGap: NarrativeGapResult;
   customerPsych: CustomerPsychResult | null;
+  /** Per-dimension score breakdown from Claude. */
+  scoreDimensions?: Record<string, ScoreDimension>;
   /** Optional metadata about data sources used in the analysis. */
   dataSources?: {
     pageCount: number;

@@ -1,7 +1,6 @@
 import type { CompiledReport } from "@/lib/types";
 import { ScoreGauge } from "./ScoreGauge";
 import { GapCard } from "./GapCard";
-import { DataSourcesTable } from "./DataSourcesTable";
 
 interface ReportViewProps {
   report: CompiledReport;
@@ -20,92 +19,21 @@ function formatDate(iso: string): string {
   }
 }
 
-/**
- * Builds the data sources list from the report's narrative gap result,
- * customer psychology availability, and optional dataSources metadata.
- */
-function buildDataSources(report: CompiledReport) {
-  const sources: Array<{
-    name: string;
-    status: "found" | "not_found" | "partial";
-    detail?: string;
-  }> = [];
-
-  const gap = report.narrativeGap;
-  const ds = report.dataSources;
-
-  // Pages info
-  const pageCount = ds?.pageCount ?? (gap.companyThemes?.length ?? 0);
-  sources.push({
-    name: "Website pages",
-    status: pageCount > 0 ? "found" : "not_found",
-    detail:
-      pageCount > 0
-        ? `${pageCount} pages scraped, ${gap.companyThemes.length} themes identified`
-        : undefined,
-  });
-
-  // Reviews info
-  const hasReviews =
-    report.customerPsych !== null &&
-    report.customerPsych !== undefined;
-  const reviewCount = ds?.reviewCount ?? (gap.customerThemes?.length ?? 0);
-
-  sources.push({
-    name: "Customer reviews",
-    status: hasReviews ? "found" : "not_found",
-    detail: hasReviews ? `${reviewCount} reviews analysed` : "No reviews found",
-  });
-
-  // Customer psychology analysis
-  sources.push({
-    name: "Customer psychology analysis",
-    status: hasReviews ? "found" : "not_found",
-    detail: hasReviews ? "Full analysis completed" : "Skipped (insufficient reviews)",
-  });
-
-  // Hacker News discussions
-  const hnCount = ds?.hnDiscussionCount ?? 0;
-  if (hnCount > 0) {
-    sources.push({
-      name: "Hacker News discussions",
-      status: "found",
-      detail: `${hnCount} discussion${hnCount === 1 ? "" : "s"} analysed`,
-    });
-  }
-
-  // Web Archive snapshots
-  const archiveCount = ds?.archiveSnapshotCount ?? 0;
-  if (archiveCount > 0) {
-    sources.push({
-      name: "Web Archive snapshots",
-      status: "found",
-      detail: `${archiveCount} historical snapshot${archiveCount === 1 ? "" : "s"}`,
-    });
-  }
-
-  // Gap analysis
-  sources.push({
-    name: "Narrative gap analysis",
-    status: gap.gaps.length > 0 ? "found" : "partial",
-    detail: `${gap.gaps.length} gaps identified`,
-  });
-
-  return sources;
+/** Format underscore_case gap type to readable label. */
+function formatGapType(type: string): string {
+  return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-/** Score dimension labels and their max points. */
-const scoreDimensions = [
-  { label: "Message clarity", maxPoints: 25 },
-  { label: "Customer alignment", maxPoints: 25 },
-  { label: "Differentiation", maxPoints: 20 },
-  { label: "Voice consistency", maxPoints: 15 },
-  { label: "CTA clarity", maxPoints: 15 },
-] as const;
+/** Map scoreDimensions keys to readable labels. */
+const dimensionLabels: Record<string, string> = {
+  messageClarity: "Message clarity",
+  customerAlignment: "Customer alignment",
+  differentiation: "Differentiation",
+  voiceConsistency: "Voice consistency",
+  ctaClarity: "CTA clarity",
+};
 
 export function ReportView({ report }: ReportViewProps) {
-  const dataSources = buildDataSources(report);
-
   return (
     <div className="flex flex-1 flex-col items-center bg-white font-sans">
       <article className="w-full max-w-2xl px-6 py-16 sm:py-24">
@@ -154,22 +82,26 @@ export function ReportView({ report }: ReportViewProps) {
                     Dimension
                   </th>
                   <th className="pb-2 text-right font-semibold text-xs tracking-wide uppercase text-zinc-400">
-                    Max
+                    Score
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {scoreDimensions.map((dim) => (
-                  <tr
-                    key={dim.label}
-                    className="border-b border-zinc-100 last:border-b-0"
-                  >
-                    <td className="py-2 pr-4 text-zinc-700">{dim.label}</td>
-                    <td className="py-2 text-right font-mono text-zinc-400">
-                      /{dim.maxPoints}
-                    </td>
-                  </tr>
-                ))}
+                {report.scoreDimensions && Object.entries(report.scoreDimensions).map(([key, dim]) => {
+                  const d = dim as { score: number; maxScore: number };
+                  const label = dimensionLabels[key] || formatGapType(key);
+                  return (
+                    <tr
+                      key={key}
+                      className="border-b border-zinc-100 last:border-b-0"
+                    >
+                      <td className="py-2 pr-4 text-zinc-700">{label}</td>
+                      <td className="py-2 text-right font-mono text-zinc-500">
+                        {d.score}/{d.maxScore}
+                      </td>
+                    </tr>
+                  );
+                })}
                 <tr className="border-t border-zinc-200">
                   <td className="pt-2 pr-4 font-semibold text-zinc-900">
                     Total
@@ -225,14 +157,6 @@ export function ReportView({ report }: ReportViewProps) {
             ))}
           </section>
         )}
-
-        {/* ─── Data Sources ─── */}
-        <section className="mb-16">
-          <h2 className="text-xs font-semibold tracking-widest uppercase text-zinc-400 mb-4">
-            Data sources analysed
-          </h2>
-          <DataSourcesTable sources={dataSources} />
-        </section>
 
         {/* ─── CTA ─── */}
         <section className="border-t border-zinc-200 pt-10">

@@ -27,7 +27,7 @@ export function GapCard({ gap }: GapCardProps) {
 
       {/* Theme heading */}
       <h3 className="mt-3 text-lg font-semibold tracking-tight text-zinc-900">
-        {gap.theme}
+        {gap.theme.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
       </h3>
 
       {/* Two-column contrast */}
