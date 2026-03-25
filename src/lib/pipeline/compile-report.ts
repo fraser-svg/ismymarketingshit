@@ -142,6 +142,11 @@ function mapToCompiledReport(
       }
     : undefined;
 
+  // Pass through scoreDimensions from Claude's response
+  const scoreDimensions = data.scoreDimensions && typeof data.scoreDimensions === "object"
+    ? data.scoreDimensions
+    : undefined;
+
   return {
     mirrorLine,
     sections,
@@ -150,6 +155,7 @@ function mapToCompiledReport(
     domain: data.domain ?? "",
     narrativeGap,
     customerPsych,
+    ...(scoreDimensions ? { scoreDimensions } : {}),
     ...(dataSources ? { dataSources } : {}),
   };
 }
