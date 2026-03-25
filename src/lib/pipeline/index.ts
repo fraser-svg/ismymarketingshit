@@ -10,6 +10,7 @@ import { analyzeNarrativeGapStep } from "./analyze-narrative-gap";
 import { analyzeCustomerPsychologyStep } from "./analyze-customer-psychology";
 import { compileReportStep, compileReportWithCorrections } from "./compile-report";
 import { verifyReport } from "./verify-report";
+import { expertReviewStep } from "./expert-review";
 import { generateReportStep } from "./generate-report-html";
 import { sendEmailStep } from "./send-email";
 import { sendErrorEmail } from "@/lib/services/resend";
@@ -283,6 +284,14 @@ export const voiceGapPipeline = inngest.createFunction(
         );
       });
     }
+
+    await updateJobStatus(jobId, { currentStep: "expert-review" });
+
+    // Step 7b: Expert review panel (Dunford, Moesta, Schwartz, Wiebe, Trott)
+    report = await step.run("expert-review", async () => {
+      console.log("[expert-review] Running expert panel review");
+      return expertReviewStep(report as CompiledReport, analysisInput);
+    });
 
     await updateJobStatus(jobId, { currentStep: "generate-report" });
 

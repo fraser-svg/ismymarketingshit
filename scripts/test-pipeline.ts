@@ -177,15 +177,22 @@ async function main() {
   log(`  Confidence: ${narrativeGap.confidence}`);
 
   // Step 7: Compile report
-  log("\n[7/8] Compiling report (Claude)...");
-  const report = await compileReportStep(analysisInput, narrativeGap, null);
+  log("\n[7/9] Compiling report (Claude)...");
+  let report = await compileReportStep(analysisInput, narrativeGap, null);
   log(`  Score: ${report.score}/100`);
   log(`  Sections: ${report.sections.length}`);
   log(`  Mirror Line: ${report.mirrorLine}`);
 
-  // Step 8: Generate HTML report
+  // Step 7b: Expert review panel
+  log("\n[8/9] Expert review panel (Dunford, Moesta, Schwartz, Wiebe, Trott)...");
+  const { expertReviewStep } = await import("../src/lib/pipeline/expert-review");
+  report = await expertReviewStep(report, analysisInput);
+  log(`  Score after review: ${report.score}/100`);
+  log(`  Mirror Line after review: ${report.mirrorLine}`);
+
+  // Step 9: Generate HTML report
   const jobId = `test-${Date.now()}`;
-  log(`\n[8/8] Storing report as ${jobId}...`);
+  log(`\n[9/9] Storing report as ${jobId}...`);
   const reportUrl = await generateReportStep(jobId, report);
   log(`  URL: ${reportUrl}`);
 
