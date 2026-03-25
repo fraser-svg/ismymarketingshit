@@ -9,13 +9,17 @@ function getClient(): Anthropic {
   return _client;
 }
 
+export const SONNET = "claude-sonnet-4-6";
+export const HAIKU = "claude-haiku-4-5-20251001";
+
 export async function callClaude(params: {
   systemPrompt: string;
   userPrompt: string;
   maxTokens?: number;
+  model?: string;
 }): Promise<string> {
   const response = await getClient().messages.create({
-    model: "claude-sonnet-4-20250514",
+    model: params.model ?? SONNET,
     max_tokens: params.maxTokens ?? 4096,
     system: params.systemPrompt,
     messages: [{ role: "user", content: params.userPrompt }],

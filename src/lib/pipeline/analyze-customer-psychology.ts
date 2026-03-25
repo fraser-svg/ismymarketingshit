@@ -3,7 +3,7 @@ import type {
   NarrativeGapResult,
   CustomerPsychResult,
 } from "../types";
-import { callClaude, parseJSONResponse } from "../services/anthropic";
+import { callClaude, parseJSONResponse, HAIKU } from "../services/anthropic";
 import { SYSTEM_PROMPT } from "../prompts/system-prompt";
 import { buildCustomerPsychologyPrompt } from "../prompts/customer-psychology";
 
@@ -31,6 +31,7 @@ export async function analyzeCustomerPsychologyStep(
       systemPrompt: SYSTEM_PROMPT,
       userPrompt,
       maxTokens: 4096,
+      model: HAIKU,
     });
   } catch (err) {
     throw new Error(
@@ -49,6 +50,7 @@ export async function analyzeCustomerPsychologyStep(
         userPrompt +
         "\n\nIMPORTANT: Your previous response was not valid JSON. Respond ONLY with the JSON object. No markdown, no code fences, no commentary.",
       maxTokens: 4096,
+      model: HAIKU,
     });
 
     try {
