@@ -84,11 +84,32 @@ export function buildReportCompilationPrompt(
 
   return `TASK: Compile the Voice Gap Analysis Report for ${companyName}
 
-You have two analysis passes to work from. Compile them into a single, devastating, evidence-backed report.
+You have two analysis passes to work from. Compile them into a single, evidence-backed report that makes the founder see something they have been too close to notice.
 
-Your job: make the reader see something they have been too close to notice. Not to tell them what to do. To show them what IS.
+=== YOUR PROCESS ===
 
-The most powerful finding is always a CONTRAST. What they say vs what customers say. What they emphasise vs what they ignore. What they think they are vs what they actually sound like.
+STEP 1: WRITE THE REPORT (Sharp Operator voice, Sutherland reframing)
+
+For each section, find the non-obvious truth. The stated positioning is almost never the real value. Look for:
+- What the company thinks they sell vs what customers actually buy
+- The costly signal: what does their messaging reveal about their priorities?
+- The asymmetric opportunity: the thing they could say that costs nothing but changes everything (usually already in customer testimonials, being ignored)
+- The perception gap: it does not matter what the product does, it matters what people believe it does
+
+State every finding as a contrast. "You think the product is X. The customer experiences Y."
+
+STEP 2: ORWELL REVIEW (apply before responding)
+
+Before you output anything, review every line you wrote. Apply these checks:
+- Delete any sentence that tells the reader something they already know.
+- Delete any sentence that could apply to any company in this industry.
+- If a paragraph could be said in half the words, rewrite it in half the words.
+- If removing a sentence does not weaken the paragraph, remove it.
+- Every sentence must contain either evidence (a quote, a number, a page reference) or an insight (a reframe the reader has not considered). If it contains neither, it is filler. Delete it.
+- No warm-ups. No "let us first consider..." No "it is important to note that..." Start with the finding.
+- Read the first sentence of each section. That sentence alone should make the reader lean forward. If it does not, rewrite it.
+
+The test: could the founder print this report and read every word without skimming? If any sentence invites skimming, cut it.
 
 If a finding would not make the founder pause mid-scroll, cut it.
 If a finding could apply to any company in their industry, cut it.

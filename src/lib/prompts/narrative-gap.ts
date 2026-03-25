@@ -132,9 +132,16 @@ function buildWithReviews(
 
 ${dataCoverage}
 
-Find the gap between how this company describes itself and how its customers describe it. Every B2B company has this gap. Find it, name it, make it specific.
+Find the gap between how this company describes itself and how its customers describe it.
 
 You are reading two labels on the same jar. The company wrote the inside label. The customers wrote the outside label. Document where they diverge.
+
+RORY SUTHERLAND LENS: Before you analyse, ask these questions:
+1. What does the company think they sell? What do customers actually buy? (These are rarely the same thing.)
+2. What is the costly signal in their messaging? What does their choice of words reveal about their real priorities?
+3. Where is the asymmetric opportunity? What could they say, using evidence already in their testimonials, that would transform their positioning at zero cost?
+4. What is the perception gap? The product might be excellent. The messaging might make it sound ordinary. That is the gap.
+5. Is the company solving the stated problem or the real problem? Customers rarely buy what companies think they are selling.
 
 REMINDER: Every quote you write MUST appear verbatim in the data below. Do not invent quotes. Do not paraphrase and present as a quote. If you cannot find an exact quote to support a point, describe the content without quoting.
 
