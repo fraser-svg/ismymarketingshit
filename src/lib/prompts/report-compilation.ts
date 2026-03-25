@@ -46,6 +46,29 @@ export function buildReportCompilationPrompt(
     ? `\nWeb Archive snapshots (${archiveSnapshots.length} historical captures):\n${archiveSnapshots.map((s) => `  ${s.timestamp}: ${s.archiveUrl}`).join("\n")}`
     : "";
 
+  // Build page content block — actual text for Claude to quote from
+  const pageContentBlock = input.pages
+    .map((p) => {
+      const label = p.selector || "page";
+      const truncated = p.content.slice(0, 4000);
+      const isTruncated = p.content.length > 4000;
+      return `--- PAGE: ${p.url} (${label}) ---\n${truncated}${isTruncated ? "\n[...truncated]" : ""}\n--- END PAGE ---`;
+    })
+    .join("\n\n");
+
+  // Build review content block — actual reviews for Claude to quote from
+  const reviewContentBlock = hasReviews
+    ? substantiveReviews
+        .slice(0, 30)
+        .map((r) => {
+          const platform = r.selector || r.source || "review";
+          const truncated = r.content.slice(0, 1500);
+          const isTruncated = r.content.length > 1500;
+          return `--- REVIEW (${platform}) ${r.url} ---\n${truncated}${isTruncated ? "\n[...truncated]" : ""}\n--- END REVIEW ---`;
+        })
+        .join("\n\n")
+    : "";
+
   // Serialize analysis results for the prompt
   const narrativeGapJSON = JSON.stringify(narrativeGap, null, 2);
   const customerPsychJSON = hasCustomerPsych
@@ -108,12 +131,21 @@ Review every line. Delete anything that:
 If a sentence has no quote, no number, and no reframe, it is filler. Cut it.
 
 === DATA SOURCES ===
-Pages scraped:
+Pages scraped (${input.pages.length} pages):
 ${sourceSummary}
-
-Reviews:
-${reviewSummary}
 ${hnBlock}${archiveBlock}
+
+Reviews (${substantiveReviews.length} substantive):
+${reviewSummary}
+
+=== SOURCE MATERIAL (quote ONLY from this text) ===
+
+WEBSITE PAGES:
+${pageContentBlock}
+
+${hasReviews ? `CUSTOMER REVIEWS:\n${reviewContentBlock}` : "No reviews available."}
+
+CRITICAL: Every quote in your report MUST appear verbatim in the source material above. Do not paraphrase. Do not invent. If you cannot find an exact quote to support a point, state the finding without quotes.
 
 Data confidence: ${input.dataQuality.confidence}
 

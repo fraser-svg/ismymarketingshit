@@ -95,7 +95,7 @@ export function buildNarrativeGapPrompt(input: AnalysisInput): string {
 
   const archiveSnapshots = input.extras.archiveSnapshots ?? [];
   const archiveBlock = archiveSnapshots.length > 0
-    ? `HISTORICAL MESSAGING (Web Archive):\nThese snapshots show how ${companyName}'s messaging has evolved over time. Look for patterns: has the positioning changed? Has the language stayed generic for years? Did they pivot their messaging?\n${archiveSnapshots.map((s) => `  ${s.timestamp}: ${s.archiveUrl}`).join("\n")}`
+    ? `HISTORICAL MESSAGING (Web Archive):\nThese are URLs of historical snapshots. You have NOT been given the content of these pages. Do NOT make claims about what they contain. Only note that ${archiveSnapshots.length} historical snapshot(s) exist.\n${archiveSnapshots.map((s) => `  ${s.timestamp}: ${s.archiveUrl}`).join("\n")}`
     : "";
 
   const extrasBlock = [
@@ -293,11 +293,7 @@ ${hnArticles.map((a) => `--- HN DISCUSSION: ${a.url} ---\n${a.content.slice(0, 2
   // Build the Web Archive messaging evolution section
   const archiveSection = hasArchive
     ? `\n=== MESSAGING EVOLUTION (Web Archive) ===
-These historical snapshots show how ${companyName}'s public messaging has changed over time. Analyse:
-- Has the positioning changed significantly or stayed stagnant?
-- Did they pivot from one audience to another?
-- Has the language become more or less specific over time?
-- Are they still using the same generic phrases from years ago?
+These are URLs of ${archiveSnapshots.length} historical snapshot(s). You have NOT been given the content of these archived pages. Do NOT make claims about how messaging has evolved. Only note that historical snapshots exist.
 
 ${archiveSnapshots.map((s) => `  ${s.timestamp}: ${s.archiveUrl}`).join("\n")}`
     : "";

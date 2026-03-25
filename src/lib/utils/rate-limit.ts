@@ -1,15 +1,16 @@
 /**
- * In-memory rate limiter with TTL-based expiry.
+ * Rate limiter with Redis backend (production) and in-memory fallback (dev).
  *
  * Limits:
  *   - 1 analysis per email per 7 days
  *   - 1 analysis per domain per 24 hours
  *   - 5 submissions per IP per hour
  *
- * Uses a simple Map for local development. For production with multiple
- * instances, swap the store implementation for Redis (the interface is the
- * same: set a key with a TTL, read it back).
+ * Uses Upstash Redis when UPSTASH_REDIS_REST_URL is set.
+ * Falls back to in-memory Map for local development.
  */
+
+import { redis } from "@/lib/services/redis";
 
 interface RateLimitResult {
   allowed: boolean;
@@ -17,57 +18,81 @@ interface RateLimitResult {
   retryAfter?: number; // seconds
 }
 
+const HOUR = 60 * 60;
+const DAY = 24 * HOUR;
+const WEEK = 7 * DAY;
+
+// ---------------------------------------------------------------------------
+// In-memory fallback (development only)
+// ---------------------------------------------------------------------------
+
 interface RateLimitEntry {
   count: number;
   expiresAt: number; // epoch ms
 }
 
-const store = new Map<string, RateLimitEntry>();
-
-const HOUR = 60 * 60;
-const DAY = 24 * HOUR;
-const WEEK = 7 * DAY;
-
-/** Purge expired entries periodically so the Map doesn't grow unbounded. */
+const memoryStore = new Map<string, RateLimitEntry>();
 let lastPurge = Date.now();
-const PURGE_INTERVAL_MS = 60_000; // 1 minute
+const PURGE_INTERVAL_MS = 60_000;
 
 function purgeExpired(): void {
   const now = Date.now();
   if (now - lastPurge < PURGE_INTERVAL_MS) return;
   lastPurge = now;
-
-  for (const [key, entry] of store) {
-    if (entry.expiresAt <= now) {
-      store.delete(key);
-    }
+  for (const [key, entry] of memoryStore) {
+    if (entry.expiresAt <= now) memoryStore.delete(key);
   }
 }
 
-/**
- * Increment a rate-limit bucket. Returns the current count after increment.
- * If the key doesn't exist or has expired, it starts fresh with count=1.
- */
-function increment(key: string, windowSeconds: number): { count: number; retryAfter: number } {
+function memoryIncrement(key: string, windowSeconds: number): { count: number; retryAfter: number } {
   purgeExpired();
-
   const now = Date.now();
-  const existing = store.get(key);
+  const existing = memoryStore.get(key);
 
   if (existing && existing.expiresAt > now) {
     existing.count += 1;
-    const retryAfter = Math.ceil((existing.expiresAt - now) / 1000);
-    return { count: existing.count, retryAfter };
+    return { count: existing.count, retryAfter: Math.ceil((existing.expiresAt - now) / 1000) };
   }
 
-  // New window
-  store.set(key, {
-    count: 1,
-    expiresAt: now + windowSeconds * 1000,
-  });
-
+  memoryStore.set(key, { count: 1, expiresAt: now + windowSeconds * 1000 });
   return { count: 1, retryAfter: windowSeconds };
 }
+
+// ---------------------------------------------------------------------------
+// Redis backend (production)
+// ---------------------------------------------------------------------------
+
+const useRedis = !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
+
+async function redisIncrement(key: string, windowSeconds: number): Promise<{ count: number; retryAfter: number }> {
+  // INCR returns the new value. If key is new, it returns 1.
+  const count = await redis.incr(key);
+
+  if (count === 1) {
+    // First request in this window — set the expiry
+    await redis.expire(key, windowSeconds);
+  }
+
+  // Get TTL for retry-after header
+  const ttl = await redis.ttl(key);
+  return { count, retryAfter: ttl > 0 ? ttl : windowSeconds };
+}
+
+async function increment(key: string, windowSeconds: number): Promise<{ count: number; retryAfter: number }> {
+  if (useRedis) {
+    try {
+      return await redisIncrement(key, windowSeconds);
+    } catch (err) {
+      console.warn(`[rate-limit] Redis error, falling back to memory: ${err instanceof Error ? err.message : String(err)}`);
+      return memoryIncrement(key, windowSeconds);
+    }
+  }
+  return memoryIncrement(key, windowSeconds);
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
 
 export async function checkRateLimit(params: {
   email: string;
@@ -78,7 +103,7 @@ export async function checkRateLimit(params: {
 
   // 1. Email: 1 per 7 days
   const emailKey = `rl:email:${email.toLowerCase()}`;
-  const emailResult = increment(emailKey, WEEK);
+  const emailResult = await increment(emailKey, WEEK);
   if (emailResult.count > 1) {
     return {
       allowed: false,
@@ -89,7 +114,7 @@ export async function checkRateLimit(params: {
 
   // 2. Domain: 1 per 24 hours
   const domainKey = `rl:domain:${domain.toLowerCase()}`;
-  const domainResult = increment(domainKey, DAY);
+  const domainResult = await increment(domainKey, DAY);
   if (domainResult.count > 1) {
     return {
       allowed: false,
@@ -100,7 +125,7 @@ export async function checkRateLimit(params: {
 
   // 3. IP: 5 per hour
   const ipKey = `rl:ip:${ip}`;
-  const ipResult = increment(ipKey, HOUR);
+  const ipResult = await increment(ipKey, HOUR);
   if (ipResult.count > 5) {
     return {
       allowed: false,
@@ -114,5 +139,5 @@ export async function checkRateLimit(params: {
 
 /** Exported for testing: reset the in-memory store. */
 export function _resetStore(): void {
-  store.clear();
+  memoryStore.clear();
 }

@@ -118,14 +118,21 @@ export function buildExpertReviewPrompt(
   );
 
   // Include raw data summary so experts can reference actual content
+  // Pass full source data so experts can reference actual content accurately.
+  // Up to 4000 chars per page and 1000 chars per review to prevent hallucination
+  // from truncated context. Accuracy matters more than token cost.
   const pageSummary = input.pages
-    .map((p) => `${p.url}: ${p.content.slice(0, 2000)}`)
+    .map((p) => `${p.url}: ${p.content.slice(0, 6000)}`)
     .join("\n\n");
 
   const reviewSummary = input.reviews
     .filter((r) => r.content.trim().length > 10)
-    .slice(0, 20)
-    .map((r) => `[${r.source}] ${r.content.slice(0, 500)}`)
+    .slice(0, 30)
+    .map((r) => {
+      const platform = r.platform || r.selector || r.source;
+      const author = r.author ? ` by ${r.author}` : "";
+      return `[${platform}${author}] ${r.content.slice(0, 1500)}`;
+    })
     .join("\n\n");
 
   const expertBlocks = EXPERTS.map(
@@ -141,6 +148,7 @@ CRITICAL RULES:
 - No expert can invent quotes, statistics, or page content not in the data.
 - Every improvement must be grounded in evidence from the source data.
 - If an expert suggests adding a finding, the evidence MUST exist in the pages or reviews below.
+- Experts may ONLY sharpen, compress, reorder, or cut existing content. They MUST NOT add new quotes or findings. If a suggestion requires new evidence, discard it.
 
 === THE CURRENT REPORT ===
 ${reportJSON}

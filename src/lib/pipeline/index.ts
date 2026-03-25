@@ -9,10 +9,11 @@ import { verifyScrapeData } from "./verify-scraped-data";
 import { analyzeNarrativeGapStep } from "./analyze-narrative-gap";
 import { analyzeCustomerPsychologyStep } from "./analyze-customer-psychology";
 import { compileReportStep, compileReportWithCorrections } from "./compile-report";
-import { verifyReport } from "./verify-report";
+import { verifyReport, stripHallucinatedContent } from "./verify-report";
 import { expertReviewStep } from "./expert-review";
 import { generateReportStep } from "./generate-report-html";
 import { sendEmailStep } from "./send-email";
+import { verifyNarrativeGapEvidence } from "./verify-narrative-gap";
 import { sendErrorEmail } from "@/lib/services/resend";
 import type {
   JobStatus,
@@ -20,6 +21,7 @@ import type {
   AnalysisInput,
   SourceRecord,
   CompiledReport,
+  NarrativeGapResult,
 } from "@/lib/types";
 import type { Review } from "@/lib/services/apify";
 
@@ -74,6 +76,10 @@ function buildAnalysisInput(
       scrapedAt: r.date || new Date().toISOString(),
       source: "review" as const,
       selector: r.platform,
+      platform: r.platform,
+      author: r.author || undefined,
+      category: r.category || undefined,
+      rating: r.rating ?? undefined,
     }))
     .filter((r) => r.content.trim().length > 10);
 
@@ -243,9 +249,15 @@ export const voiceGapPipeline = inngest.createFunction(
     await updateJobStatus(jobId, { currentStep: "analyze-narrative-gap" });
 
     // Step 5: Narrative gap analysis via Claude
-    const narrativeGap = await step.run("analyze-narrative-gap", async () => {
+    let narrativeGap = await step.run("analyze-narrative-gap", async () => {
       console.log("[analyze-narrative-gap] Running Claude analysis");
       return analyzeNarrativeGapStep(analysisInput);
+    });
+
+    // Step 5a: Verify narrative gap evidence against source data
+    narrativeGap = await step.run("verify-narrative-gap", async () => {
+      console.log("[verify-narrative-gap] Checking gap evidence against source corpus");
+      return verifyNarrativeGapEvidence(narrativeGap, analysisInput);
     });
 
     await updateJobStatus(jobId, { currentStep: "analyze-psychology" });
@@ -283,6 +295,38 @@ export const voiceGapPipeline = inngest.createFunction(
           reportVerification.issues as string[],
         );
       });
+
+      // Re-verify the retried report
+      const retryVerification = await step.run("verify-report-retry", async () => {
+        console.log("[verify-report-retry] Re-verifying corrected report");
+        return verifyReport(report as CompiledReport, analysisInput);
+      });
+
+      // If still hallucinated after retry, strip before expert review
+      if (!retryVerification.valid && (retryVerification.hallucinatedQuotes ?? []).length > 0) {
+        report = await step.run("strip-hallucinations-pre-expert", async () => {
+          console.log(
+            `[strip-hallucinations-pre-expert] Stripping ${(retryVerification.hallucinatedQuotes ?? []).length} remaining hallucinated quote(s)`,
+          );
+          return stripHallucinatedContent(
+            report as CompiledReport,
+            retryVerification,
+          );
+        });
+
+        // Re-verify after stripping to confirm report is clean
+        const postStripVerification = await step.run("verify-post-strip", async () => {
+          console.log("[verify-post-strip] Re-verifying after hallucination strip");
+          return verifyReport(report as CompiledReport, analysisInput);
+        });
+
+        if (!postStripVerification.valid) {
+          console.warn(
+            `[pipeline] Report still invalid after pre-expert strip for ${domain}`,
+            postStripVerification.issues,
+          );
+        }
+      }
     }
 
     await updateJobStatus(jobId, { currentStep: "expert-review" });
@@ -292,6 +336,70 @@ export const voiceGapPipeline = inngest.createFunction(
       console.log("[expert-review] Running expert panel review");
       return expertReviewStep(report as CompiledReport, analysisInput);
     });
+
+    // Step 7c: Verify expert-reviewed report (anti-hallucination gate #2)
+    let finalVerification = await step.run("verify-final", async () => {
+      console.log("[verify-final] Running post-expert-review anti-hallucination checks");
+      return verifyReport(report as CompiledReport, analysisInput);
+    });
+
+    // If expert review introduced hallucinations, strip them
+    if (!finalVerification.valid && (finalVerification.hallucinatedQuotes ?? []).length > 0) {
+      report = await step.run("strip-hallucinations", async () => {
+        console.log(
+          `[strip-hallucinations] Stripping ${(finalVerification.hallucinatedQuotes ?? []).length} hallucinated quote(s)`,
+        );
+        return stripHallucinatedContent(
+          report as CompiledReport,
+          finalVerification,
+        );
+      });
+
+      // Re-verify after stripping
+      finalVerification = await step.run("verify-after-strip", async () => {
+        console.log("[verify-after-strip] Re-verifying after final hallucination strip");
+        return verifyReport(report as CompiledReport, analysisInput);
+      });
+    }
+
+    // HARD GATE: Do not ship invalid reports
+    if (!finalVerification.valid) {
+      const criticalIssues = (finalVerification.issues as string[]).filter(
+        (i) => i.startsWith("HALLUCINATED") || i.startsWith("CRITICAL") || i.startsWith("UNCITED"),
+      );
+
+      if (criticalIssues.length > 0) {
+        // Critical issues: abort pipeline entirely
+        await updateJobStatus(jobId, {
+          status: "failed",
+          error: `Report failed verification: ${criticalIssues.length} critical issue(s)`,
+        });
+
+        console.error(
+          `[pipeline] Aborting: report failed final verification for ${domain}`,
+          finalVerification.issues,
+        );
+
+        await step.run("send-verification-failure-email", async () => {
+          return sendErrorEmail({
+            to: email,
+            domain,
+            reason:
+              "We completed the analysis but our quality checks flagged issues we could not resolve automatically. " +
+              "We would rather not send you a report with unverified claims. " +
+              "Please reply to this email and we will look into it.",
+          });
+        });
+
+        return { jobId, error: "verification_failed", issues: finalVerification.issues };
+      }
+
+      // Non-critical issues (specificity, minor slop): log warning but allow
+      console.warn(
+        `[pipeline] Report has non-critical verification issues for ${domain}:`,
+        finalVerification.issues,
+      );
+    }
 
     await updateJobStatus(jobId, { currentStep: "generate-report" });
 

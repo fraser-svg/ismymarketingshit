@@ -6,6 +6,14 @@ export interface SourceRecord {
   source: "website" | "review" | "news" | "tech";
   /** Optional selector or section label for traceability. */
   selector?: string;
+  /** Review platform name (e.g. "g2", "trustpilot"). */
+  platform?: string;
+  /** Review author name when available. */
+  author?: string;
+  /** Review category for distinguishing voice types. */
+  category?: "customer_review" | "social_mention" | "employee_review" | "company_profile";
+  /** Review rating (0-5, 0 for unrated platforms). */
+  rating?: number;
 }
 
 /** Quality assessment of the scraped data. */
@@ -146,12 +154,24 @@ export interface CrawlResultRecord {
   status: number;
 }
 
+/** Individual quote verification result. */
+export interface QuoteVerification {
+  quote: string;
+  found: boolean;
+  source?: string;
+  matchType: "exact" | "proximity" | "not_found";
+}
+
 /** Report verification result. */
 export interface ReportVerification {
   valid: boolean;
   issues: string[];
   /** When true, hallucinated quotes exceed threshold and the report must be regenerated. */
   shouldRerun?: boolean;
+  /** Detailed per-quote verification results. */
+  quoteVerifications?: QuoteVerification[];
+  /** List of quotes that could not be verified against any source. */
+  hallucinatedQuotes?: string[];
 }
 
 /** Persisted job status in Redis. */

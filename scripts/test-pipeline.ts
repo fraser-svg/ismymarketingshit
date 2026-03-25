@@ -183,12 +183,46 @@ async function main() {
   log(`  Sections: ${report.sections.length}`);
   log(`  Mirror Line: ${report.mirrorLine}`);
 
-  // Step 7b: Expert review panel
-  log("\n[8/9] Expert review panel (Dunford, Moesta, Schwartz, Wiebe, Trott)...");
+  // Step 7a: Verify report
+  log("\n[7a/10] Verifying report against source data...");
+  const { verifyReport, stripHallucinatedContent } = await import("../src/lib/pipeline/verify-report");
+  const preVerification = verifyReport(report, analysisInput);
+  log(`  Verification: ${preVerification.valid ? "PASSED" : "FAILED"}`);
+  log(`  Issues: ${preVerification.issues.length}`);
+  for (const issue of preVerification.issues) {
+    log(`    - ${issue}`);
+  }
+  if ((preVerification.hallucinatedQuotes ?? []).length > 0) {
+    log(`  Hallucinated quotes: ${preVerification.hallucinatedQuotes!.length}`);
+    for (const q of preVerification.hallucinatedQuotes!) {
+      log(`    ! "${q.slice(0, 80)}${q.length > 80 ? "..." : ""}"`);
+    }
+  }
+
+  // Step 8: Expert review panel
+  log("\n[8/10] Expert review panel (Dunford, Moesta, Schwartz, Wiebe, Trott)...");
   const { expertReviewStep } = await import("../src/lib/pipeline/expert-review");
   report = await expertReviewStep(report, analysisInput);
   log(`  Score after review: ${report.score}/100`);
   log(`  Mirror Line after review: ${report.mirrorLine}`);
+
+  // Step 8a: Post-expert-review verification
+  log("\n[8a/10] Post-expert-review verification...");
+  const postVerification = verifyReport(report, analysisInput);
+  log(`  Verification: ${postVerification.valid ? "PASSED" : "FAILED"}`);
+  log(`  Issues: ${postVerification.issues.length}`);
+  for (const issue of postVerification.issues) {
+    log(`    - ${issue}`);
+  }
+  if ((postVerification.hallucinatedQuotes ?? []).length > 0) {
+    log(`  Hallucinated quotes: ${postVerification.hallucinatedQuotes!.length}`);
+    for (const q of postVerification.hallucinatedQuotes!) {
+      log(`    ! "${q.slice(0, 80)}${q.length > 80 ? "..." : ""}"`);
+    }
+    log("  Stripping hallucinated content...");
+    report = stripHallucinatedContent(report, postVerification);
+    log("  Hallucinated content stripped.");
+  }
 
   // Step 9: Generate HTML report
   const jobId = `test-${Date.now()}`;

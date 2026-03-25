@@ -1,4 +1,4 @@
-import { searchHackerNews, type HNResult } from "@/lib/services/hackernews";
+import { searchHackerNews, getHNComments, type HNResult } from "@/lib/services/hackernews";
 import {
   getWebArchiveSnapshots,
   type ArchiveSnapshot,
@@ -131,11 +131,47 @@ async function fetchHackerNewsArticles(
   try {
     const results: HNResult[] = await searchHackerNews(companyName);
 
-    return results.map((r) => ({
-      title: r.title,
-      url: r.url,
-      snippet: `${r.points} points | ${r.numComments} comments | by ${r.author} | ${r.createdAt}`,
-    }));
+    // Fetch comments for the top 5 stories (by points) to get actual community voice
+    const topStories = [...results]
+      .sort((a, b) => b.points - a.points)
+      .slice(0, 5);
+
+    const storiesWithComments = await Promise.all(
+      topStories.map(async (r) => {
+        let commentText = "";
+        if (r.numComments > 0) {
+          const comments = await getHNComments(r.objectID);
+          if (comments.length > 0) {
+            // Strip HTML tags from comments and take first 500 chars each
+            const cleanComments = comments
+              .map((c) => c.replace(/<[^>]+>/g, "").trim())
+              .filter((c) => c.length > 10)
+              .slice(0, 5)
+              .map((c) => c.slice(0, 500));
+            commentText = cleanComments.length > 0
+              ? `\nTop comments:\n${cleanComments.map((c) => `  - ${c}`).join("\n")}`
+              : "";
+          }
+        }
+        return {
+          title: r.title,
+          url: r.url,
+          snippet: `${r.points} points | ${r.numComments} comments | by ${r.author} | ${r.createdAt}${commentText}`,
+        };
+      }),
+    );
+
+    // Include remaining stories without comments
+    const topIds = new Set(topStories.map((s) => s.objectID));
+    const remaining = results
+      .filter((r) => !topIds.has(r.objectID))
+      .map((r) => ({
+        title: r.title,
+        url: r.url,
+        snippet: `${r.points} points | ${r.numComments} comments | by ${r.author} | ${r.createdAt}`,
+      }));
+
+    return [...storiesWithComments, ...remaining];
   } catch (err) {
     console.warn(
       `[scrape-extras] HN search error: ${err instanceof Error ? err.message : err}`,

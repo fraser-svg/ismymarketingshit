@@ -13,6 +13,24 @@ async function loadReport(id: string): Promise<CompiledReport | null> {
   const safeId = id.replace(/[^a-zA-Z0-9_-]/g, "");
   if (!safeId || safeId !== id) return null;
 
+  // Try Vercel Blob first (production)
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    try {
+      const { retrieveData } = await import("@/lib/services/storage");
+      const blobUrl = `${process.env.BLOB_READ_WRITE_TOKEN ? "https://" : ""}`;
+      // Use the Vercel Blob list/fetch pattern
+      const { list } = await import("@vercel/blob");
+      const blobs = await list({ prefix: `voice-gap/reports/${safeId}.json` });
+      if (blobs.blobs.length > 0) {
+        const report = await retrieveData<CompiledReport>(blobs.blobs[0].url);
+        if (report) return report;
+      }
+    } catch (err) {
+      console.warn(`[report-page] Blob lookup failed, trying filesystem: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  // Filesystem fallback (development)
   const filePath = join(process.cwd(), "data", "reports", `${safeId}.json`);
 
   try {
