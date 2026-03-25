@@ -82,38 +82,30 @@ export function buildReportCompilationPrompt(
       "Do not penalise for the absence of data you do not have."
     : "";
 
-  return `TASK: Compile the Voice Gap Analysis Report for ${companyName}
+  return `TASK: Voice Gap Analysis for ${companyName}
 
-You have two analysis passes to work from. Compile them into a single, evidence-backed report that makes the founder see something they have been too close to notice.
+Write a brutally honest diagnosis. Not a report. A diagnosis.
 
-=== YOUR PROCESS ===
+RULES:
+- Short sentences. Max 12 to 15 words each.
+- No fluff. No corporate language. No hedging.
+- Use sharp contrasts: "You say: [X]. They feel: [Y]."
+- Prioritise punch over completeness. Say the sharpest thing. Move on.
+- Make it slightly uncomfortable. If it feels too harsh, keep it.
+- Write like a diagnosis, not a report.
+- If anything sounds like a consultant wrote it, rewrite it.
 
-STEP 1: WRITE THE REPORT (Sharp Operator voice, Sutherland reframing)
+SUTHERLAND LENS:
+Find the non-obvious truth. What does the company think they sell? What do customers actually buy? Where is the asymmetric opportunity hiding in plain sight?
 
-For each section, find the non-obvious truth. The stated positioning is almost never the real value. Look for:
-- What the company thinks they sell vs what customers actually buy
-- The costly signal: what does their messaging reveal about their priorities?
-- The asymmetric opportunity: the thing they could say that costs nothing but changes everything (usually already in customer testimonials, being ignored)
-- The perception gap: it does not matter what the product does, it matters what people believe it does
+BEFORE YOU RESPOND:
+Review every line. Delete anything that:
+- Tells the reader something they already know
+- Could apply to any company in this industry
+- Contains no evidence and no insight
+- Invites skimming
 
-State every finding as a contrast. "You think the product is X. The customer experiences Y."
-
-STEP 2: ORWELL REVIEW (apply before responding)
-
-Before you output anything, review every line you wrote. Apply these checks:
-- Delete any sentence that tells the reader something they already know.
-- Delete any sentence that could apply to any company in this industry.
-- If a paragraph could be said in half the words, rewrite it in half the words.
-- If removing a sentence does not weaken the paragraph, remove it.
-- Every sentence must contain either evidence (a quote, a number, a page reference) or an insight (a reframe the reader has not considered). If it contains neither, it is filler. Delete it.
-- No warm-ups. No "let us first consider..." No "it is important to note that..." Start with the finding.
-- Read the first sentence of each section. That sentence alone should make the reader lean forward. If it does not, rewrite it.
-
-The test: could the founder print this report and read every word without skimming? If any sentence invites skimming, cut it.
-
-If a finding would not make the founder pause mid-scroll, cut it.
-If a finding could apply to any company in their industry, cut it.
-If a finding does not cite a specific URL or review, cut it.
+If a sentence has no quote, no number, and no reframe, it is filler. Cut it.
 
 === DATA SOURCES ===
 Pages scraped:
@@ -133,82 +125,75 @@ ${customerPsychJSON}
 
 ---
 
-REPORT STRUCTURE:
+REPORT SECTIONS:
 
-1. MIRROR LINE
-The headline finding. One or two sentences. Already provided in the narrative gap analysis. You may refine the wording but do not change the substance or weaken it.
+1. THE MIRROR
+The headline finding. Max two sentences. Already in the narrative gap analysis. Sharpen the wording. Do not weaken it.
 
-2. WHAT YOU SAY ABOUT YOURSELF
-Summary of the company's voice with specific evidence. Quote exact copy from specific pages. Name the pages. Show patterns. This is the "inside the jar" label.
+2. WHAT YOU SAY
+Quote exact copy from specific pages. Name the pages. Show the pattern. Short paragraphs. Lead with the most revealing quote.
 
-3. ${hasReviews ? "WHAT YOUR CUSTOMERS SAY ABOUT YOU" : "WHAT AN OUTSIDER SEES"}
-${hasReviews ? "Summary of the customer voice with specific evidence. Quote verbatim from reviews. Name platforms and authors where available. Show what themes emerge. This is the 'outside the jar' label." : "What a cold visitor sees when they land on this website. No context, no warm intro. Assess clarity, specificity, and whether the value proposition is obvious within 5 seconds."}
+3. ${hasReviews ? "WHAT THEY SAY" : "WHAT AN OUTSIDER SEES"}
+${hasReviews ? "Quote verbatim from reviews. Name platforms and authors. Show the themes that keep repeating. These are the words your customers use when you are not in the room." : "What a stranger sees landing cold on this site. No context. Five seconds. What do they understand? What confuses them?"}
 
-4. THE GAPS
-Each gap finding with evidence from both sides. Use the contrast structure: "You say X. They say Y. That is the gap." Every gap must reference specific sources.
+4. THE GAP
+Each gap as a contrast. Two lines max per gap.
+"You say: [exact quote from site]. They feel: [exact quote from review or outsider observation]."
+Every gap must cite a specific source.
 
-5. CLARITY SCORE
-Score from 0 to 100 with dimension breakdown.
+5. WHY THIS MATTERS
+What this gap costs them. One to two paragraphs. Be specific about consequences: lost visitors, confused buyers, wasted spend.
+
+6. BOTTOM LINE
+One brutal truth. Two to three sentences max. This is the line they will remember.
+
+SCORING:
 
 ${clarityRubric}
 
-Score each dimension individually with a brief justification citing specific evidence. Then sum for the total.
+Score each dimension. One sentence justification each. Sum for total.
 
 ${noReviewScoringGuidance}
 
-6. KEY ISSUES
-Specific, actionable issues. Each must cite evidence. Categories:
-- Vagueness: where the messaging is too abstract to be useful
-- Sameness: where the copy could belong to any competitor
-- Unclear ICP: where it is not obvious who this product is for
-- Weak value articulation: where the real value is buried or missing
-
-THREE SIGNATURE MOVES (all must appear somewhere in the report):
-1. Identity flip: "You think you are X. You actually sound like Y."
-2. Cost of the problem: "This makes you easy to ignore."
-3. Directional reframe: "This would be stronger if framed as..."
-
 SPECIFICITY IS THE WEAPON:
-Not "your messaging could be clearer" but:
-- "Your homepage headline says '[exact text]'. This could be any company in any industry."
-- "Your top reviewer says '[exact quote]'. Your website never mentions [that concept] once."
-- "You have N reviews. The word '[X]' appears in M of them. Your homepage mentions it zero times."
+- "Your hero reads: '[exact text]'. Swap in any competitor name. Still works."
+- "Your reviewer says '[exact quote]'. Your site never mentions it."
+- "N of your reviews use the word '[X]'. Your homepage uses it zero times."
 
-QUANTIFY WHERE POSSIBLE:
-- "X of Y reviews mention [theme]. Your website mentions it N times."
-- "Your homepage uses N words before stating what you do."
-- "Your CTA is N clicks from the homepage."
+NAME EVERYTHING:
+- "On /about you say..." not "on your website..."
+- "A testimonial from [name] at [school]..." not "a customer..."
 
-NAME AND LOCATE:
-- "On your /pricing page..." not "on your website..."
-- "A Trustpilot reviewer wrote..." not "one of your customers..."
-- "Your hero headline reads: '[exact text]'" not "your headline is vague"
-
-IMPORTANT: Each section's "content" field must be SUBSTANTIAL — multiple paragraphs of analysis with specific quotes, evidence, and page references. Do NOT leave content empty or write a single sentence. This is the core deliverable.
+Each section's "content" must be substantial. Multiple short paragraphs with specific quotes and evidence. No section can be a single sentence. This is the deliverable.
 
 RESPOND WITH THIS EXACT JSON STRUCTURE (and ONLY this JSON, no other text):
 {
-  "mirrorLine": "The refined mirror line. One or two sentences.",
+  "mirrorLine": "Max two sentences. The sharpest thing you can say.",
   "sections": [
     {
-      "title": "What you say about yourself",
-      "content": "Company voice summary with specific evidence. Multiple paragraphs. Quote exact copy from specific pages. Name the pages. Show patterns. This section should be 3-5 paragraphs minimum.",
-      "citations": ["https://example.com/about", "https://example.com"]
+      "title": "What you say",
+      "content": "Short paragraphs. Exact quotes from specific pages. Name the pages. Show the pattern. Lead with the most revealing quote.",
+      "citations": ["page URLs"]
     },
     {
-      "title": "${hasReviews ? "What your customers say about you" : "What an outsider sees"}",
-      "content": "${hasReviews ? "Customer voice summary with specific evidence. Quote verbatim from reviews. Name platforms and authors. Show themes. 3-5 paragraphs minimum." : "What a cold visitor sees landing on this website. Assess clarity, specificity, and whether the value proposition is obvious. 3-5 paragraphs minimum."}",
-      "citations": ["${hasReviews ? "G2 review by [author]" : "homepage URL"}"]
+      "title": "${hasReviews ? "What they say" : "What an outsider sees"}",
+      "content": "${hasReviews ? "Verbatim quotes from reviews. Name platforms and authors. Show repeating themes." : "What a stranger sees in five seconds. What they understand. What confuses them."}",
+      "citations": ["sources"]
     },
     {
-      "title": "The gaps",
-      "content": "Each gap as a contrast. You say X. They say Y. That is the gap. Separate each gap with a blank line. Include all gaps found. 3-5 paragraphs minimum.",
-      "citations": ["source for each gap"]
+      "title": "The gap",
+      "content": "Each gap as a two-line contrast. You say: [X]. They feel: [Y]. Cite sources for each.",
+      "citations": ["sources"]
     },
     {
-      "title": "Key issues",
-      "content": "Specific issues with evidence. Categorised by type (Vagueness, Sameness, Unclear ICP, Weak value articulation). 3-5 paragraphs minimum.",
-      "citations": ["source for each issue"]
+      "title": "Why this matters",
+      "content": "What this costs them. Specific consequences. Lost visitors, confused buyers, wasted spend.",
+      "citations": ["sources"]
+    },
+    {
+      "title": "Bottom line",
+      "content": "One brutal truth. Two to three sentences. The line they will remember.",
+      "citations": []
     }
   ],
   "score": 0,
@@ -223,5 +208,9 @@ RESPOND WITH THIS EXACT JSON STRUCTURE (and ONLY this JSON, no other text):
   "domain": "${input.company.domain}"
 }
 
-CRITICAL: The "content" field in each section is the most important part. Each must contain multiple paragraphs of detailed analysis with specific quotes and evidence. Empty or single-sentence content fields are a failure. Do NOT include narrativeGap or customerPsych in your response — only the fields shown above.`;
+CRITICAL: Each "content" field must have substance. Short paragraphs, but multiple of them. Specific quotes and evidence in every one. Empty content is a failure.
+
+Do NOT include narrativeGap or customerPsych in your response. Only the fields shown above.
+
+Final check before responding: read every sentence. If a consultant would write it, rewrite it. If it feels too harsh, keep it.`;
 }
