@@ -52,24 +52,46 @@ export function verifyReport(
   const allText = gatherReportText(report);
 
   // 1. Quote check: verify quoted strings exist in scraped data
+  //    This is the primary anti-hallucination gate. Every quoted string in the
+  //    report must be traceable to at least one scraped page, review, or article.
   const quotes = extractQuotes(allText);
+  let hallucinatedQuoteCount = 0;
+
   for (const quote of quotes) {
     // Skip very short quotes (under 10 chars) as they are likely fragments
     if (quote.length < 10) continue;
 
-    const quoteLower = quote.toLowerCase();
-    if (!corpusLower.includes(quoteLower)) {
-      // Try a fuzzy match: check if 80%+ of words appear
-      const words = quoteLower.split(/\s+/).filter((w) => w.length > 3);
-      const matchCount = words.filter((w) => corpusLower.includes(w)).length;
-      const matchRatio = words.length > 0 ? matchCount / words.length : 0;
+    const quoteLower = quote.toLowerCase().trim();
 
-      if (matchRatio < 0.8) {
-        issues.push(
-          `QUOTE NOT FOUND: "${quote.slice(0, 80)}${quote.length > 80 ? "..." : ""}" does not appear in scraped data. This may be fabricated.`,
-        );
+    // Strategy 1: Exact substring match across all source pages
+    const exactMatch = corpusLower.includes(quoteLower);
+
+    if (!exactMatch) {
+      // Strategy 2: Try matching against each individual page/review/article
+      //             using a sliding window approach for fuzzy substring matching
+      const foundInSource = findQuoteInSources(quoteLower, input);
+
+      if (!foundInSource) {
+        // Strategy 3: Check if 90%+ of significant words appear in a single
+        //             source page (not spread across pages, which would be a
+        //             Frankenstein quote)
+        const frankensteinCheck = checkFrankensteinQuote(quoteLower, input);
+
+        if (!frankensteinCheck) {
+          hallucinatedQuoteCount++;
+          issues.push(
+            `HALLUCINATED QUOTE: "${quote.slice(0, 100)}${quote.length > 100 ? "..." : ""}" does not appear in any scraped source. This is fabricated content.`,
+          );
+        }
       }
     }
+  }
+
+  // If more than 2 quotes are hallucinated, the report is fundamentally unreliable
+  if (hallucinatedQuoteCount > 2) {
+    issues.push(
+      `CRITICAL: ${hallucinatedQuoteCount} hallucinated quotes detected. Report is unreliable and must be regenerated.`,
+    );
   }
 
   // 2. Source check: verify cited URLs exist in our source records
@@ -136,6 +158,7 @@ export function verifyReport(
   return {
     valid: issues.length === 0,
     issues,
+    shouldRerun: hallucinatedQuoteCount > 2,
   };
 }
 
@@ -154,6 +177,78 @@ function buildCorpus(input: AnalysisInput): string {
     parts.push(article.content);
   }
   return parts.join("\n");
+}
+
+/**
+ * Collect all individual source texts (pages, reviews, articles) as separate entries.
+ */
+function collectSourceTexts(input: AnalysisInput): string[] {
+  const sources: string[] = [];
+  for (const page of input.pages) {
+    sources.push(page.content);
+  }
+  for (const review of input.reviews) {
+    sources.push(review.content);
+  }
+  for (const article of input.extras.newsArticles) {
+    sources.push(article.content);
+  }
+  return sources;
+}
+
+/**
+ * Search for a quote across individual source pages/reviews/articles.
+ *
+ * Uses fuzzy substring matching: normalises whitespace and allows for minor
+ * punctuation differences between the quote and the source text.
+ */
+function findQuoteInSources(quoteLower: string, input: AnalysisInput): boolean {
+  const sources = collectSourceTexts(input);
+  // Normalise the quote: collapse whitespace, strip edge punctuation
+  const normalisedQuote = quoteLower.replace(/\s+/g, " ").trim();
+
+  for (const source of sources) {
+    const normalisedSource = source.toLowerCase().replace(/\s+/g, " ");
+
+    // Direct substring match after normalisation
+    if (normalisedSource.includes(normalisedQuote)) {
+      return true;
+    }
+
+    // Try matching with punctuation stripped (handles curly quotes, apostrophes, etc.)
+    const stripPunct = (s: string) => s.replace(/[^\w\s]/g, "").replace(/\s+/g, " ");
+    if (stripPunct(normalisedSource).includes(stripPunct(normalisedQuote))) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Check if 90%+ of a quote's significant words appear in a SINGLE source.
+ *
+ * This catches quotes that are close paraphrases of actual content in one source,
+ * while rejecting "Frankenstein quotes" stitched together from multiple sources.
+ */
+function checkFrankensteinQuote(quoteLower: string, input: AnalysisInput): boolean {
+  const words = quoteLower.split(/\s+/).filter((w) => w.length > 3);
+  if (words.length === 0) return true; // trivial quote, let it pass
+
+  const sources = collectSourceTexts(input);
+
+  for (const source of sources) {
+    const sourceLower = source.toLowerCase();
+    const matchCount = words.filter((w) => sourceLower.includes(w)).length;
+    const matchRatio = matchCount / words.length;
+
+    // 90% of significant words must appear in a single source
+    if (matchRatio >= 0.9) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**

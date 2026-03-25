@@ -9,6 +9,53 @@ import type { AnalysisInput } from "../types";
  * When reviews are empty, pivots to "outsider clarity analysis"
  * assessing messaging clarity to a cold visitor.
  */
+/**
+ * Build the DATA COVERAGE section that lists exactly which page types
+ * were and were not scraped. This prevents the AI from making claims
+ * about pages it hasn't seen.
+ */
+function buildDataCoverageBlock(input: AnalysisInput): string {
+  const pageTypes = new Map<string, string[]>();
+
+  for (const page of input.pages) {
+    const path = new URL(page.url).pathname.toLowerCase();
+    let label = "other";
+    if (path === "/" || path === "") label = "homepage";
+    else if (/\/(about|company|team|who-we-are|our-story|leadership)/i.test(path)) label = "about";
+    else if (/\/(pricing|plans|packages)/i.test(path)) label = "pricing";
+    else if (/\/(features?|products?|solutions?|services?|platform)/i.test(path)) label = "products/features";
+    else if (/\/(blog|posts?|articles?|news|resources?)/i.test(path)) label = "blog";
+    else if (/\/(testimonials?|reviews?|customers?|case-stud|success-stor)/i.test(path)) label = "testimonials/reviews";
+    else if (/\/(contact|support|help|faq)/i.test(path)) label = "contact/support";
+
+    if (!pageTypes.has(label)) pageTypes.set(label, []);
+    pageTypes.get(label)!.push(page.url);
+  }
+
+  const scraped = [...pageTypes.entries()]
+    .map(([type, urls]) => `${type} (${urls.length}): ${urls.join(", ")}`)
+    .join("\n  ");
+
+  const criticalTypes = ["homepage", "about", "pricing", "products/features", "testimonials/reviews"];
+  const missingTypes = criticalTypes.filter((t) => !pageTypes.has(t));
+
+  const lines = [
+    "DATA COVERAGE (read this carefully before writing anything):",
+    `  PAGES SCRAPED:\n  ${scraped}`,
+  ];
+
+  if (missingTypes.length > 0) {
+    lines.push(
+      `  PAGES NOT SCRAPED: ${missingTypes.join(", ")}`,
+      `  WARNING: You have NO data for the page types listed above. Do NOT make claims about what those pages contain or do not contain. If you need to reference a missing page type, write: "We did not analyse [page type] for this report."`,
+    );
+  } else {
+    lines.push("  All critical page types were scraped.");
+  }
+
+  return lines.join("\n");
+}
+
 export function buildNarrativeGapPrompt(input: AnalysisInput): string {
   // Check for reviews with actual text content, not just non-empty array.
   // Reviews can be empty objects or have trivial content after serialization.
@@ -79,11 +126,17 @@ function buildWithReviews(
   extrasBlock: string,
   input: AnalysisInput,
 ): string {
+  const dataCoverage = buildDataCoverageBlock(input);
+
   return `TASK: Narrative Gap Analysis for ${companyName}
+
+${dataCoverage}
 
 Find the gap between how this company describes itself and how its customers describe it. Every B2B company has this gap. Find it, name it, make it specific.
 
 You are reading two labels on the same jar. The company wrote the inside label. The customers wrote the outside label. Document where they diverge.
+
+REMINDER: Every quote you write MUST appear verbatim in the data below. Do not invent quotes. Do not paraphrase and present as a quote. If you cannot find an exact quote to support a point, describe the content without quoting.
 
 DATA QUALITY: ${input.dataQuality.confidence} confidence. ${input.dataQuality.pageCount} pages scraped, ${input.dataQuality.reviewCount} reviews found.
 ${input.dataQuality.issues.length > 0 ? `Known issues: ${input.dataQuality.issues.join("; ")}` : ""}
@@ -259,9 +312,15 @@ ${archiveSnapshots.map((s) => `  ${s.timestamp}: ${s.archiveUrl}`).join("\n")}`
     ? "Use Hacker News comments as a proxy for external perception. Quote specific comments. Note the tone — is the community excited, confused, or indifferent? Compare what HN commenters say the product does vs what the website says it does."
     : "What a cold visitor sees when they land on this website. No context, no warm intro. Assess clarity, specificity, and whether the value proposition is obvious within 5 seconds.";
 
+  const dataCoverage = buildDataCoverageBlock(input);
+
   return `TASK: Outsider Clarity Analysis for ${companyName}
 
+${dataCoverage}
+
 No customer reviews were found for this company. ${hasHN ? "However, Hacker News discussions provide community perception data. Use these as a proxy for external voice." : "Instead of a narrative gap analysis, perform an outsider clarity analysis: assess how clear this company's messaging is to a cold visitor who knows nothing about them."}
+
+REMINDER: Every quote you write MUST appear verbatim in the data below. Do not invent quotes. Do not paraphrase and present as a quote. If you cannot find an exact quote to support a point, describe the content without quoting.
 
 You are a sharp, experienced operator visiting this website for the first time. You have no context. No warm intro. No idea what this company does. Assess what a stranger sees.
 

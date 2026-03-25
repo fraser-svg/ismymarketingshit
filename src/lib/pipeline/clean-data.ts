@@ -76,11 +76,11 @@ export function cleanContent(content: string): string {
 
   let text = content;
 
-  // Pre-step: if this is raw HTML (single line or mostly tags), strip tags first
+  // Pre-step: if this is HTML (contains significant tags), strip tags first
   // to convert to plain text before applying line-based cleaning.
-  const lineCount = text.split("\n").length;
   const htmlTagCount = (text.match(/<[^>]+>/g) || []).length;
-  if (lineCount < 5 && htmlTagCount > 10) {
+  const isHtml = htmlTagCount > 10 || text.trimStart().startsWith("<!DOCTYPE") || text.trimStart().startsWith("<html");
+  if (isHtml) {
     // Remove script and style blocks entirely (including content)
     text = text.replace(/<script[\s\S]*?<\/script>/gi, "");
     text = text.replace(/<style[\s\S]*?<\/style>/gi, "");

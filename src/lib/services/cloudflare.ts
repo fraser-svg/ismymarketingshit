@@ -82,7 +82,7 @@ export async function initiateCrawl(
   url: string,
   options: CrawlOptions = {},
 ): Promise<string> {
-  const { limit = 8, formats = ["markdown"], includePatterns, excludePatterns } =
+  const { limit = 15, formats = ["markdown"], includePatterns, excludePatterns } =
     options;
 
   const body: Record<string, unknown> = {
@@ -593,6 +593,127 @@ function filterAndPrioritisePages(pages: ScrapedPage[]): ScrapedPage[] {
   return result;
 }
 
+// ---------------------------------------------------------------------------
+// Critical page types that MUST be fetched if missing from the crawl
+// ---------------------------------------------------------------------------
+
+interface CriticalPageType {
+  type: ScrapedPage["type"];
+  label: string;
+  paths: string[];
+  /** Regex patterns to match against existing URLs to see if we already have this type */
+  matchPatterns: RegExp[];
+}
+
+const CRITICAL_PAGE_TYPES: CriticalPageType[] = [
+  {
+    type: "other",
+    label: "testimonials",
+    paths: ["/testimonials", "/reviews", "/customers", "/case-studies", "/success-stories"],
+    matchPatterns: [/\/(testimonials?|reviews?|customers?|case-stud|success-stor)/i],
+  },
+  {
+    type: "about",
+    label: "about",
+    paths: ["/about", "/about-us", "/company", "/our-story", "/who-we-are"],
+    matchPatterns: [/\/(about|about-us|company|our-story|who-we-are|team|leadership)/i],
+  },
+  {
+    type: "pricing",
+    label: "pricing",
+    paths: ["/pricing", "/plans", "/packages"],
+    matchPatterns: [/\/(pricing|plans|packages|cost)/i],
+  },
+  {
+    type: "features",
+    label: "products",
+    paths: ["/products", "/features", "/solutions", "/services", "/platform"],
+    matchPatterns: [/\/(products?|features?|solutions?|services?|platform|how-it-works)/i],
+  },
+];
+
+/**
+ * Check which critical page types are missing from the crawl results
+ * and attempt to fetch them via direct HTTP requests.
+ *
+ * This ensures the analysis always has access to testimonials, about,
+ * pricing, and product pages when they exist on the site.
+ */
+async function ensureCriticalPages(
+  pages: ScrapedPage[],
+  domain: string,
+): Promise<ScrapedPage[]> {
+  const existingUrls = new Set(pages.map((p) => new URL(p.url).pathname.toLowerCase()));
+  const now = new Date().toISOString();
+  const additionalPages: ScrapedPage[] = [];
+
+  for (const critical of CRITICAL_PAGE_TYPES) {
+    // Check if we already have a page matching this critical type
+    const alreadyHave = pages.some((p) => {
+      const path = new URL(p.url).pathname;
+      return critical.matchPatterns.some((re) => re.test(path));
+    });
+
+    if (alreadyHave) continue;
+
+    console.log(
+      `[cloudflare] Critical page type "${critical.label}" missing from crawl, trying fallback paths`,
+    );
+
+    // Try each candidate path until one succeeds
+    let found = false;
+    for (const candidatePath of critical.paths) {
+      if (found) break;
+
+      const candidateUrl = `https://${domain}${candidatePath}`;
+      const normalizedPath = candidatePath.toLowerCase();
+
+      // Skip if we already fetched this exact path
+      if (existingUrls.has(normalizedPath)) continue;
+
+      const html = await fetchPage(candidateUrl);
+      if (html && html.length > 500) {
+        // Page exists and has meaningful content
+        const sourceRecord: SourceRecord = {
+          url: candidateUrl,
+          content: html,
+          scrapedAt: now,
+          source: "website",
+          selector: "critical-page-fallback",
+        };
+
+        additionalPages.push({
+          url: candidateUrl,
+          type: critical.type,
+          content: html,
+          sourceRecord,
+        });
+
+        existingUrls.add(normalizedPath);
+        found = true;
+
+        console.log(
+          `[cloudflare] Found critical page "${critical.label}" at ${candidateUrl}`,
+        );
+      }
+    }
+
+    if (!found) {
+      console.log(
+        `[cloudflare] Critical page type "${critical.label}" not found on ${domain}`,
+      );
+    }
+  }
+
+  if (additionalPages.length > 0) {
+    console.log(
+      `[cloudflare] Added ${additionalPages.length} critical pages via fallback`,
+    );
+  }
+
+  return [...pages, ...additionalPages];
+}
+
 /**
  * Scrape a website using the Cloudflare Browser Rendering crawl API.
  *
@@ -611,7 +732,7 @@ export async function scrapeWebsite(domain: string): Promise<ScrapedPage[]> {
 
   try {
     jobId = await initiateCrawl(targetUrl, {
-      limit: 8,
+      limit: 15,
       formats: ["markdown"],
     });
   } catch (error) {
@@ -691,5 +812,8 @@ export async function scrapeWebsite(domain: string): Promise<ScrapedPage[]> {
     };
   });
 
-  return filterAndPrioritisePages(pages);
+  // Ensure critical page types (testimonials, about, pricing, products) are present
+  const pagesWithCritical = await ensureCriticalPages(pages, domain);
+
+  return filterAndPrioritisePages(pagesWithCritical);
 }

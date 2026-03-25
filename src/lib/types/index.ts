@@ -142,6 +142,8 @@ export interface CrawlResultRecord {
 export interface ReportVerification {
   valid: boolean;
   issues: string[];
+  /** When true, hallucinated quotes exceed threshold and the report must be regenerated. */
+  shouldRerun?: boolean;
 }
 
 /** Persisted job status in Redis. */
