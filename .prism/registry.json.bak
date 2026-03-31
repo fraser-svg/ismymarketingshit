@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "change": {
+    "name": "replace-apify",
+    "stage": "understand",
+    "started": "2026-03-31T12:08:20Z",
+    "last_save": null,
+    "last_save_commit": null,
+    "branch": "fraser-svg/replace-apify-free",
+    "complexity": null,
+    "requirement_count": null,
+    "spec_path": null
+  },
+  "workers": [
+    {
+      "id": "w1",
+      "status": "completed",
+      "retries": 0,
+      "created": "2026-03-31T12:12:00Z",
+      "last_updated": "2026-03-31T12:15:10Z"
+    },
+    {
+      "id": "w2",
+      "status": "completed",
+      "retries": 0,
+      "created": "2026-03-31T12:12:00Z",
+      "last_updated": "2026-03-31T12:15:10Z"
+    },
+    {
+      "id": "w3",
+      "status": "completed",
+      "retries": 0,
+      "created": "2026-03-31T12:15:16Z",
+      "last_updated": "2026-03-31T12:18:29Z"
+    },
+    {
+      "id": "w4",
+      "status": "completed",
+      "retries": 0,
+      "created": "2026-03-31T12:18:38Z",
+      "last_updated": "2026-03-31T12:21:24Z"
+    }
+  ],
+  "checkpoint": {
+    "stage": 3,
+    "progress": "all 4 workers complete",
+    "decisions": [
+      "replaced apify with free scrapers",
+      "13 platforms covered"
+    ],
+    "preferences": [],
+    "open_questions": [],
+    "next_steps": [
+      "verify",
+      "ship"
+    ],
+    "stage_route": "C",
+    "stage_total": 7
+  },
+  "contracts": {},
+  "events": []
+}
