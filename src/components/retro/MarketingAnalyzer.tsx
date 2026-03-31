@@ -101,6 +101,7 @@ export const MarketingAnalyzer: React.FC<MarketingAnalyzerProps> = ({
     // Fire real API call
     let jobId: string;
     let isExisting = false;
+    let existingStatus = "";
     try {
       const res = await fetch("/api/submit", {
         method: "POST",
@@ -114,6 +115,7 @@ export const MarketingAnalyzer: React.FC<MarketingAnalyzerProps> = ({
       const data = await res.json();
       jobId = data.jobId as string;
       isExisting = !!data.existing;
+      existingStatus = (data.status as string) || "";
     } catch (err) {
       document.body.style.cursor = "default";
       setPhase("ERROR");
@@ -126,8 +128,8 @@ export const MarketingAnalyzer: React.FC<MarketingAnalyzerProps> = ({
       return;
     }
 
-    // If report already exists, skip straight to it
-    if (isExisting) {
+    // If report already exists and is completed, skip straight to it
+    if (isExisting && existingStatus === "completed") {
       addLine("Report found in cache.");
       await new Promise((r) => setTimeout(r, 500));
       addLine("Redirecting to existing report...");
@@ -136,6 +138,12 @@ export const MarketingAnalyzer: React.FC<MarketingAnalyzerProps> = ({
       setPhase("REDIRECTING");
       router.push(`/report/${jobId}`);
       return;
+    }
+
+    // If existing but still in progress, resume the theatrical scan with polling
+    if (isExisting) {
+      addLine("Analysis already running. Resuming...");
+      await new Promise((r) => setTimeout(r, 500));
     }
 
     // Start theatrical scanning while polling in background

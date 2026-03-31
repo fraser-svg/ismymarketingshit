@@ -91,9 +91,18 @@ export async function POST(request: NextRequest) {
     const existingJobId = await redis.get<string>(`domain:${domain}`);
     if (existingJobId) {
       const existingJob = await redis.get<JobStatus>(`job:${existingJobId}`);
-      if (existingJob && existingJob.status === "completed") {
+      if (existingJob) {
+        // Return existing job regardless of status — completed reports redirect
+        // immediately, in-progress jobs resume polling. Never block repeat searches.
         return NextResponse.json(
-          { jobId: existingJobId, existing: true, message: "Report already exists" },
+          {
+            jobId: existingJobId,
+            existing: true,
+            status: existingJob.status,
+            message: existingJob.status === "completed"
+              ? "Report already exists"
+              : "Analysis already in progress",
+          },
           { status: 200 },
         );
       }
