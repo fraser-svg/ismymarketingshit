@@ -277,8 +277,8 @@ export const MarketingAnalyzer: React.FC<MarketingAnalyzerProps> = ({
       setProgress(90);
       addLine("");
       addLine("\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500");
-      addLine("DEEP ANALYSIS IN PROGRESS");
-      addLine("This takes 2-4 minutes. Do not close this window.");
+      addLine("We are literally wading through your shit.");
+      addLine("This will take a while. Do not close this window.");
       addLine("\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500");
       addLine("");
 
