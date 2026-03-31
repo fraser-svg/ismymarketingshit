@@ -143,6 +143,9 @@ export async function POST(request: NextRequest) {
 
     await redis.set(`job:${jobId}`, jobStatus);
 
+    // Map domain → jobId so repeat submissions find it (24h TTL)
+    await redis.set(`domain:${domain}`, jobId, { ex: 86400 });
+
     // --- Emit Inngest event ---
     await inngest.send({
       name: "analysis/requested",
