@@ -34,9 +34,10 @@
   background-repeat: no-repeat;
   color: #000;
   font-family: "MS Sans Serif", "Microsoft Sans Serif", Tahoma, Geneva, sans-serif;
-  font-size: 11px;
-  -webkit-font-smoothing: none;
-  -moz-osx-font-smoothing: unset;
+  font-size: 12px;
+  font-weight: 500;
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
   text-rendering: auto;
   image-rendering: auto;
   overflow: hidden;
@@ -87,8 +88,8 @@
   .win98-desktop textarea {
     font-family: inherit;
     font-size: inherit;
-    -webkit-font-smoothing: none;
-    -moz-osx-font-smoothing: unset;
+    -webkit-font-smoothing: auto;
+    -moz-osx-font-smoothing: auto;
     outline: none;
   }
 
