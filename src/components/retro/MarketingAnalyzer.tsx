@@ -144,6 +144,20 @@ export const MarketingAnalyzer: React.FC<MarketingAnalyzerProps> = ({
     runTheatricalScan(jobId);
   };
 
+  // Map pipeline steps to progress % and human-readable labels
+  const STEP_MAP: Record<string, { progress: number; label: string }> = {
+    "scrape-website": { progress: 91, label: "Scraping website content..." },
+    "scrape-reviews": { progress: 92, label: "Collecting review data..." },
+    "scrape-extras": { progress: 93, label: "Gathering additional signals..." },
+    "clean-data": { progress: 94, label: "Cleaning raw data..." },
+    "verify-scraped-data": { progress: 95, label: "Verifying data integrity..." },
+    "analyze-narrative-gap": { progress: 96, label: "Analyzing narrative gap..." },
+    "analyze-psychology": { progress: 97, label: "Profiling customer psychology..." },
+    "compile-report": { progress: 98, label: "Compiling report..." },
+    "expert-review": { progress: 99, label: "Expert panel reviewing..." },
+    "generate-report": { progress: 99, label: "Generating final report..." },
+  };
+
   const runTheatricalScan = async (jobId: string) => {
     if (abortedRef.current) return;
 
@@ -151,6 +165,7 @@ export const MarketingAnalyzer: React.FC<MarketingAnalyzerProps> = ({
     let completed = false;
     let failed = false;
     let failError = "";
+    let currentStep = "";
 
     const poll = () => {
       pollingRef.current = setTimeout(async () => {
@@ -158,6 +173,7 @@ export const MarketingAnalyzer: React.FC<MarketingAnalyzerProps> = ({
           const res = await fetch(`/api/status/${jobId}`);
           if (res.ok) {
             const status = await res.json();
+            if (status.currentStep) currentStep = status.currentStep;
             if (status.status === "completed") {
               completed = true;
               return;
@@ -256,12 +272,42 @@ export const MarketingAnalyzer: React.FC<MarketingAnalyzerProps> = ({
       return;
     }
 
-    setProgress(90);
-    addLine("Waiting for analysis pipeline...");
+    // If not done yet, show live pipeline status instead of dead wait
+    if (!completed) {
+      setProgress(90);
+      addLine("");
+      addLine("\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500");
+      addLine("DEEP ANALYSIS IN PROGRESS");
+      addLine("This takes 2-4 minutes. Do not close this window.");
+      addLine("\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500");
+      addLine("");
 
-    // Wait for completion if not yet done
-    while (!completed && !failed && !abortedRef.current) {
-      await new Promise((r) => setTimeout(r, 1000));
+      let lastStep = "";
+      const startWait = Date.now();
+
+      while (!completed && !failed && !abortedRef.current) {
+        await new Promise((r) => setTimeout(r, 2000));
+
+        // Show real pipeline step updates
+        if (currentStep && currentStep !== lastStep) {
+          const stepInfo = STEP_MAP[currentStep];
+          if (stepInfo) {
+            addLine(`> ${stepInfo.label}`);
+            setProgress(stepInfo.progress);
+          } else {
+            addLine(`> Processing: ${currentStep}...`);
+          }
+          lastStep = currentStep;
+        }
+
+        // Periodically show elapsed time so it doesn't look frozen
+        const elapsed = Math.floor((Date.now() - startWait) / 1000);
+        if (elapsed > 0 && elapsed % 30 === 0 && !completed) {
+          const mins = Math.floor(elapsed / 60);
+          const secs = elapsed % 60;
+          addLine(`  [${mins}m ${secs}s elapsed — still working]`);
+        }
+      }
     }
 
     if (failed) {
