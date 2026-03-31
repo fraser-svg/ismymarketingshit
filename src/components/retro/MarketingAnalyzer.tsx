@@ -100,6 +100,7 @@ export const MarketingAnalyzer: React.FC<MarketingAnalyzerProps> = ({
 
     // Fire real API call
     let jobId: string;
+    let isExisting = false;
     try {
       const res = await fetch("/api/submit", {
         method: "POST",
@@ -112,6 +113,7 @@ export const MarketingAnalyzer: React.FC<MarketingAnalyzerProps> = ({
       }
       const data = await res.json();
       jobId = data.jobId as string;
+      isExisting = !!data.existing;
     } catch (err) {
       document.body.style.cursor = "default";
       setPhase("ERROR");
@@ -121,6 +123,18 @@ export const MarketingAnalyzer: React.FC<MarketingAnalyzerProps> = ({
         message: err instanceof Error ? err.message : "Connection failed. Try again.",
         icon: "error",
       });
+      return;
+    }
+
+    // If report already exists, skip straight to it
+    if (isExisting) {
+      addLine("Report found in cache.");
+      await new Promise((r) => setTimeout(r, 500));
+      addLine("Redirecting to existing report...");
+      await new Promise((r) => setTimeout(r, 800));
+      document.body.style.cursor = "default";
+      setPhase("REDIRECTING");
+      router.push(`/report/${jobId}`);
       return;
     }
 

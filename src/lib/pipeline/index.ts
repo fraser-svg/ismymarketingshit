@@ -417,6 +417,9 @@ export const voiceGapPipeline = inngest.createFunction(
       currentStep: undefined,
     });
 
+    // Cache domain→jobId mapping so repeat searches get the existing report (24h TTL)
+    await redis.set(`domain:${domain}`, jobId, { ex: 86400 });
+
     return { jobId, reportUrl };
   },
 );

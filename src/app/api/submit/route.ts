@@ -87,6 +87,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // --- Check for existing report (reuse within 24h) ---
+    const existingJobId = await redis.get<string>(`domain:${domain}`);
+    if (existingJobId) {
+      const existingJob = await redis.get<JobStatus>(`job:${existingJobId}`);
+      if (existingJob && existingJob.status === "completed") {
+        return NextResponse.json(
+          { jobId: existingJobId, existing: true, message: "Report already exists" },
+          { status: 200 },
+        );
+      }
+    }
+
     // --- Rate limiting ---
     const ip =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
