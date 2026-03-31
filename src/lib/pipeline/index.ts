@@ -23,7 +23,7 @@ import type {
   CompiledReport,
   NarrativeGapResult,
 } from "@/lib/types";
-import type { Review } from "@/lib/services/apify";
+import type { Review } from "@/lib/services/reviews";
 
 /**
  * Update the job status in Redis with the current step information.
