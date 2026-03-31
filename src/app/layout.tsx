@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
+import { Geist_Mono } from "next/font/google";
 import { Providers } from "./providers";
 import "./globals.css";
 
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
-  title: "Is My Positioning Shit? — Retro Diagnostic Machine v1.0",
-  description: "A theatrical Win98-style marketing clarity analysis.",
+  title: "Is My Positioning Shit?",
+  description: "Find out what's stopping people understanding your business.",
 };
 
 export default function RootLayout({
@@ -13,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={geistMono.variable}>
       <head>
         <meta
           name="viewport"
