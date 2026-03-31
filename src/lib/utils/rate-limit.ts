@@ -120,7 +120,7 @@ export async function checkRateLimit(params: {
   // 3. IP: 5 per hour
   const ipKey = `rl:ip:${ip}`;
   const ipResult = await increment(ipKey, HOUR);
-  if (ipResult.count > 5) {
+  if (ipResult.count > 20) {
     return {
       allowed: false,
       reason: "Too many requests. Please try again later.",
