@@ -23,7 +23,7 @@ import type {
   CompiledReport,
   NarrativeGapResult,
 } from "@/lib/types";
-import type { Review } from "@/lib/services/apify";
+import type { Review } from "@/lib/services/reviews";
 
 /**
  * Update the job status in Redis with the current step information.
@@ -416,6 +416,9 @@ export const voiceGapPipeline = inngest.createFunction(
       reportUrl,
       currentStep: undefined,
     });
+
+    // Cache domain→jobId mapping so repeat searches get the existing report (24h TTL)
+    await redis.set(`domain:${domain}`, jobId, { ex: 86400 });
 
     return { jobId, reportUrl };
   },

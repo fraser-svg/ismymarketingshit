@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "change": "replace-apify",
+  "created": "2026-03-31T12:11:49Z",
+  "tasks": [
+    {
+      "id": "w1",
+      "task": "Core module: types, helpers, main scrapeReviews orchestrator + direct HTTP scrapers (Trustpilot, Reddit, Yelp, LinkedIn)",
+      "depends_on": [],
+      "route_hint": "any",
+      "status": "completed",
+      "retries": 0,
+      "created": "2026-03-31T12:11:49Z",
+      "last_updated": "2026-03-31T12:15:10Z",
+      "worker_id": null,
+      "reason": null
+    },
+    {
+      "id": "w2",
+      "task": "npm package scrapers (App Store, Google Play, Product Hunt) + Twitter",
+      "depends_on": [],
+      "route_hint": "any",
+      "status": "completed",
+      "retries": 0,
+      "created": "2026-03-31T12:11:49Z",
+      "last_updated": "2026-03-31T12:15:10Z",
+      "worker_id": null,
+      "reason": null
+    },
+    {
+      "id": "w3",
+      "task": "Cloudflare Browser Rendering scrapers (G2, Capterra, Google Business, Facebook, Glassdoor)",
+      "depends_on": [
+        "w1"
+      ],
+      "route_hint": "any",
+      "status": "completed",
+      "retries": 0,
+      "created": "2026-03-31T12:11:49Z",
+      "last_updated": "2026-03-31T12:18:29Z",
+      "worker_id": null,
+      "reason": null
+    },
+    {
+      "id": "w4",
+      "task": "Pipeline integration: update imports, remove apify references, install deps, update .env.example",
+      "depends_on": [
+        "w1",
+        "w2",
+        "w3"
+      ],
+      "route_hint": "any",
+      "status": "completed",
+      "retries": 0,
+      "created": "2026-03-31T12:11:49Z",
+      "last_updated": "2026-03-31T12:21:24Z",
+      "worker_id": null,
+      "reason": null
+    }
+  ]
+}

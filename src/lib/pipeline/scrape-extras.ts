@@ -3,7 +3,7 @@ import {
   getWebArchiveSnapshots,
   type ArchiveSnapshot,
 } from "@/lib/services/webarchive";
-import { domainToCompanyName } from "@/lib/services/apify";
+import { domainToCompanyName } from "@/lib/services/reviews";
 
 // ---------------------------------------------------------------------------
 // Types

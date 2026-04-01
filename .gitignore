@@ -44,3 +44,4 @@ data/reports/test-latest.txt
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.gstack/

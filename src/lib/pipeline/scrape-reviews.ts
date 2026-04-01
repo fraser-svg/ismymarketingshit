@@ -1,7 +1,7 @@
 import {
   scrapeReviews,
   type ScrapeReviewsResult,
-} from "@/lib/services/apify";
+} from "@/lib/services/reviews";
 
 /**
  * Pipeline step: scrape reviews for the given domain from third-party

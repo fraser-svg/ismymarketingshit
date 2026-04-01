@@ -114,21 +114,13 @@ export async function checkRateLimit(params: {
     }
   }
 
-  // 2. Domain: 1 per 24 hours
-  const domainKey = `rl:domain:${domain.toLowerCase()}`;
-  const domainResult = await increment(domainKey, DAY);
-  if (domainResult.count > 1) {
-    return {
-      allowed: false,
-      reason: "This domain was already analysed in the last 24 hours. Please try again later.",
-      retryAfter: domainResult.retryAfter,
-    };
-  }
+  // 2. Domain dedup is handled in the submit route via the domain→jobId
+  //    Redis key, so we no longer rate-limit by domain here.
 
   // 3. IP: 5 per hour
   const ipKey = `rl:ip:${ip}`;
   const ipResult = await increment(ipKey, HOUR);
-  if (ipResult.count > 5) {
+  if (ipResult.count > 20) {
     return {
       allowed: false,
       reason: "Too many requests. Please try again later.",
