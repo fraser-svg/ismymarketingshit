@@ -45,7 +45,7 @@ Hi! Thanks for using {{custom_values.business_name}}. Your honest feedback reall
 Just checking in — if you've had a moment, we'd really value your honest review of {{custom_values.business_name}}: {{custom_values.google_review_link}} Reply STOP to opt out
 ```
 
-**Character count:** 173 characters (1 SMS segment)
+**Character count:** 195 characters (1 SMS segment)
 
 *Note: Actual count will vary once merge fields are filled in.*
 
@@ -62,10 +62,10 @@ Just checking in — if you've had a moment, we'd really value your honest revie
 **Message body:**
 
 ```
-One last reminder — your honest feedback helps others choose us. Please review: {{custom_values.google_review_link}} Reply STOP to opt out
+One last reminder — your honest feedback helps others choose {{custom_values.business_name}}. Please review: {{custom_values.google_review_link}} Reply STOP to opt out
 ```
 
-**Character count:** 143 characters (1 SMS segment)
+**Character count:** 174 characters (1 SMS segment)
 
 *Note: Actual count will vary once merge fields are filled in.*
 
