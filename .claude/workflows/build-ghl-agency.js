@@ -75,14 +75,19 @@ function ownerFor(file) {
   return route ? route[1] : 'legal-drafter'
 }
 
-function run(agentType, prompt, opts) {
-  return agent(prompt, {
-    agentType,
-    model: AGENT_MODEL[agentType],
-    label: (opts && opts.label) || agentType,
-    phase: opts && opts.phase,
-    schema: opts && opts.schema,
-  })
+// Roles are loaded from .claude/agents/<name>.md by the subagent itself rather
+// than via agentType — custom agent registration only picks the files up on a
+// fresh session, and the harness must run in the session that authored them.
+function run(agentName, prompt, opts) {
+  return agent(
+    `You are acting as the '${agentName}' subagent of the build-ghl-agency harness. First Read .claude/agents/${agentName}.md and adopt the entire file as your binding role instructions, INCLUDING its frontmatter tool list — if a tool (e.g. Write, Edit, Bash) is not listed there, you must not use it. Then perform this task:\n\n${prompt}`,
+    {
+      model: AGENT_MODEL[agentName],
+      label: (opts && opts.label) || agentName,
+      phase: opts && opts.phase,
+      schema: opts && opts.schema,
+    }
+  )
 }
 
 async function runGate(iteration, phaseName) {
