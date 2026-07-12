@@ -33,8 +33,11 @@ All output is written **only** under `agency/`. UK English throughout.
 | `agency/ops/onboarding-checklist.md` | ops-writer | Pre-kickoff (contract+DPA signed, ICO fee, privacy notice updated); technical setup steps; consent-basis audit; go-live checks; first-week monitoring | GDPR-2, GDPR-5, PECR-1 |
 | `agency/ops/monthly-reporting-template.md` | ops-writer | KPI table (requests sent, delivery, reviews gained, rating trend, opt-out rate); compliance attestations section; narrative section | TONE-1 |
 | `agency/ops/complaint-optout-sop.md` | ops-writer | Opt-out handling steps + SLA (immediate); complaint escalation; data subject rights requests routing to client; incident log | PECR-3, GDPR-3, GDPR-4 |
-| `agency/README.md` | packager | What this package is; how to use it (read order); limitations (templates not legal advice; no GHL API automation; verify current law) | LEGAL-1 |
-| `agency/MANIFEST.md` | packager | Full file list; gate status + iterations; generation date; harness version | — |
+| `agency/README.md` † | packager | What this package is; how to use it (read order); limitations (templates not legal advice; no GHL API automation; verify current law) | LEGAL-1 |
+| `agency/MANIFEST.md` † | packager | Full file list; gate status + iterations; generation date; harness version | — |
+
+† Written by the packager only AFTER the compliance gate passes — exempt from the gate
+audit (their absence during the gate is expected, never a finding).
 
 Gate audit trail (`agency/_gate/review-iter-N.md`) is written by the workflow itself and
 is exempt from the spec table.

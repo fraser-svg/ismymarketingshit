@@ -18,9 +18,16 @@ Run the Workflow tool with:
 - `scriptPath: .claude/workflows/build-ghl-agency.js`
 - `args: {"runDate": "<today, YYYY-MM-DD>"}` — the script cannot call Date.now(); always
   pass today's date.
-- For an audit-only run (no regeneration): `args: {"runDate": "<today>", "gateOnly": true}`.
-  This is the `--gate-only` mode; it audits the existing `agency/**` files, writes the
-  verdict to `agency/_gate/`, and still dispatches fixes if the gate fails.
+- For an audit-only run (no regeneration, no packaging): `args: {"runDate": "<today>",
+  "gateOnly": true}`. This is the `--gate-only` mode; it audits the existing `agency/**`
+  files, writes the verdict to `agency/_gate/`, and still dispatches fixes if the gate
+  fails.
+- Recovery mode after a failed/interrupted run: `args: {"runDate": "<today>",
+  "skipGeneration": true}` — skips generation and runs the gate loop + packaging over the
+  existing files.
+
+Note: `agency/README.md` and `agency/MANIFEST.md` are written by the packager AFTER the
+gate passes; the gate never audits them.
 
 Expect ~12 subagent runs across 6 phases. On success the script returns
 `{verdict: "PASS", …}` and `agency/MANIFEST.md` records the gate result. If the gate

@@ -16,8 +16,11 @@ const REFS = '.claude/skills/build-agency/references'
 const CHECKLIST = `${REFS}/uk-compliance-checklist.md`
 const SPEC = `${REFS}/output-spec.md`
 const MAX_GATE_ITERATIONS = 3
-const RUN_DATE = (args && args.runDate) || 'unknown (pass args.runDate)'
-const GATE_ONLY = !!(args && args.gateOnly)
+// args may arrive as a JSON string depending on the caller — normalise.
+const ARGS = typeof args === 'string' ? JSON.parse(args) : args || {}
+const RUN_DATE = ARGS.runDate || 'unknown (pass args.runDate)'
+const GATE_ONLY = !!ARGS.gateOnly // audit existing agency/ files; no generation, no packaging
+const SKIP_GENERATION = !!ARGS.skipGeneration // gate + package over existing files (recovery mode)
 
 const VERDICT_SCHEMA = {
   type: 'object',
@@ -128,7 +131,7 @@ async function fixFindings(verdict, iteration, phaseName) {
 
 // ---------------------------------------------------------------------------
 
-if (!GATE_ONLY) {
+if (!GATE_ONLY && !SKIP_GENERATION) {
   phase('Research')
   await parallel([
     () => run('market-researcher', `Produce agency/research/market-snapshot.md and agency/research/target-niches.md per your agent instructions and ${SPEC}. Today's date for source-recency judgement: ${RUN_DATE}.`),

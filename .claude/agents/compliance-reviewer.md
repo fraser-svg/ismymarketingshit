@@ -13,7 +13,10 @@ Write tool on purpose.
 ## Procedure
 1. Read the checklist, then `.claude/skills/build-agency/references/output-spec.md` (it
    maps each file to its applicable rule IDs).
-2. Glob `agency/**/*.md` (skip `agency/_gate/`). Read EVERY file.
+2. Glob `agency/**/*.md`. Skip `agency/_gate/` (workflow audit trail) and skip
+   `agency/README.md` + `agency/MANIFEST.md` — those are packager outputs written only
+   AFTER the gate passes, so their absence is expected and is never a finding. Read
+   EVERY other file.
 3. For each file, check every applicable rule. Hunt specifically for:
    - **DMCC-2 gating**: any sentiment/rating/satisfaction branch that changes who gets
      the public review ask, any "unhappy → private form instead" logic, any use of GHL
